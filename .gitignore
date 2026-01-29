@@ -1,8 +1,6 @@
 .terraform
-.terraform.lock.hd
-.terraform.lock
-terraform.tfstate
-terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
 .DS_Store
-.envrc
-
