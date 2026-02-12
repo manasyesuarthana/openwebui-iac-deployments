@@ -43,6 +43,11 @@ resource "aws_route_table" "open_web_ui" {
     }
 }
 
+resource "aws_route_table_association" "open_web_ui" {
+    subnet_id      = aws_subnet.subnet.id
+    route_table_id = aws_route_table.open_web_ui.id
+}
+
 resource "aws_security_group" "ssh" {
     name = "allow-all"
     vpc_id = aws_vpc.open_web_ui.id
