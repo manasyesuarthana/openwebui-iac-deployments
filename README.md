@@ -17,7 +17,7 @@ A hands-on Infrastructure as Code (IaC) learning project for deploying [Open Web
 - [Getting Started](#getting-started)
   - [Module 1 — Terraform Basics (Local Docker)](#module-1--terraform-basics-local-docker)
   - [Module 2 — AWS Deployment](#module-2--aws-deployment)
-  - [Module 3 — GCP Deployment (Planned)](#module-3--gcp-deployment-planned)
+  - [Module 3 — GCP Deployment](#module-3--gcp-deployment)
   - [Module 4 — Azure Deployment (Planned)](#module-4--azure-deployment-planned)
 - [Terraform Workflow Cheat Sheet](#terraform-workflow-cheat-sheet)
 
@@ -31,7 +31,7 @@ This repository is structured as a progressive learning path:
 |--------|----------|-------------|--------|
 | `basics/` | Docker (local) | Learn the core Terraform workflow (`init` → `plan` → `apply` → `destroy`) without needing a cloud account. Deploys a HashiCorp Vault container locally. | Complete |
 | `aws/` | AWS | Deploy Open WebUI with Ollama on an EC2 Spot Instance inside a custom VPC, complete with networking, security groups, and automated provisioning. | Complete |
-| `gcp/` | Google Cloud | Deploy Open WebUI on GCP Compute Engine. | Planned |
+| `gcp/` | Google Cloud | Deploy Open WebUI with Ollama on a GCP Compute Engine instance using the default VPC, firewall rules, and a custom service account. | Complete |
 | `azure/` | Azure | Deploy Open WebUI on Azure Virtual Machines. | Planned |
 
 ### What is Open WebUI?
@@ -49,11 +49,17 @@ basic-terraform-labs/
 ├── .envrc                      
 │
 ├── basics/                      
-│   ├── README.md                 
 │   ├── main.tf                  
 │   └── docker.tf                
 │
-└── aws/                         
+├── aws/                         
+│   ├── main.tf                   
+│   ├── vm.tf                     
+│   ├── output.tf                 
+│   └── scripts/
+│       └── provision_basic.sh   
+│
+└── gcp/                         
     ├── main.tf                   
     ├── vm.tf                     
     ├── output.tf                 
@@ -123,7 +129,7 @@ Before applying, you need to provide a path to your **public** SSH key in `aws/v
 ```hcl
 resource "aws_key_pair" "open_web_ui" {
   key_name   = "open_web_ui"
-  public_key = file("~/.ssh/id_rsa.pub")  # ← Update this path
+  public_key = file("")  # ← Update this path
 }
 ```
 
@@ -181,9 +187,70 @@ terraform apply -var="open_webui_user=myemail@example.com"
 
 ---
 
-### Module 3 — GCP Deployment (Planned)
+### Module 3 — GCP Deployment
 
-> Coming soon. Will deploy Open WebUI on Google Compute Engine using the `google` provider.
+> **Goal:** Deploy a fully functional Open WebUI instance on GCP Compute Engine.
+
+#### Step 1: Configure SSH Key
+
+Before applying, you need to provide a path to your **public** SSH key in `gcp/vm.tf`:
+
+```hcl
+metadata = {
+  ssh-keys = "openwebui:${file("")} openwebui"  # ← Update this path
+}
+```
+
+#### Step 2: Deploy
+
+```bash
+# 1. navigate to the GCP module
+cd gcp/
+
+# 2. initialize terraform (downloads Google, terracurl, and random providers)
+terraform init
+
+# 3. preview the infrastructure plan
+terraform plan
+
+# 4. apply (type 'yes' to confirm)
+terraform apply
+
+# 5. wait for deployment to complete
+#  terracurl will poll the instance until Open WebUI responds with HTTP 200.
+
+# 6. retrieve the outputs
+terraform output public_ip            # the public IP of your instance
+terraform output -raw openwebui_password  # the auto-generated admin password
+```
+
+#### Step 3: Access Open WebUI
+
+Once deployment is complete:
+
+1. Open `http://<public_ip>` in your browser
+2. Log in with:
+   - **Email:** `admin@demo.gs` (default, configurable via `open_webui_user` variable)
+   - **Password:** The value from `terraform output -raw openwebui_password`
+
+#### Step 4: Clean Up
+
+```bash
+# destroy all resources to stop incurring costs
+terraform destroy
+```
+
+#### Customizing the Deployment
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `open_webui_user` | `admin@demo.gs` | Admin email/username for Open WebUI |
+
+Override at apply time:
+
+```bash
+terraform apply -var="open_webui_user=myemail@example.com"
+```
 
 ### Module 4 — Azure Deployment (Planned)
 
